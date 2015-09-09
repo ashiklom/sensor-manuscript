@@ -20,7 +20,7 @@
 
 library(PEcAnRTM)
 library(xtable)
-load("../data/simulation.samp.dat.RData")
+load("data/simulation.samp.dat.RData")
 
 #' To facilitate ordering of the table, we convert the representation of the 
 #' sensor in the data table (NOTE: `simulation.dat` is a `data.table` object, 

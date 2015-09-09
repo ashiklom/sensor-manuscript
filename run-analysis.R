@@ -1,14 +1,24 @@
 # Run all analyses in order
 
 # Methods
-source("methods.prospect-sensitivity.R")
+#source("methods.prospect-sensitivity.R")
 
 # Results
-# Validation
-source("results.validation-refltrans-error.R")
-source("results.water-lma-figure-table.R")
+results.files <- list.files(".", "results\\..*\\.R")
+for(f in results.files){
+    print(f)
+    source(f)
+}
 
-# Sensor analysis
-source("results.sensor-errorstat-table.R")
-source("results.sensor-error-plot.R")
-source("results.sensor-covariance.R")
+## Validation
+#source("results.validation-refltrans-error.R")
+#source("results.water-lma-figure-table.R")
+
+## Sensor analysis
+#source("results.sensor-errorstat-table.R")
+#source("results.sensor-error-plot.R")
+#source("results.sensor-covariance.R")
+
+# Compile tables and move to Google Drive
+system('cd manuscript/tables; pdflatex tables.tex; latexmk -c;\
+       mv tables.pdf ../drive-folder')
