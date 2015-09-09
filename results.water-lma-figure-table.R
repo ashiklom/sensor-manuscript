@@ -33,7 +33,7 @@ library(xtable)
 #' create subset data tables for just hardwood (`fft.h`) and conifer (`fft.c`) 
 #' species.
 
-load("../data/FFT.processed.RData")
+load("data/FFT.processed.RData")
 fft.f <- fft.f[sensor=="identity"][!is.na(N.mu)][plant.type %in% c("hardwood", "conifer")]
 fft.f <- fft.f[, Cm.mu.gm2 := Cm.mu * 100^2][, LMA_gm2 := LMA_g_DW_cm2 * 100^2]
 fft.h <- fft.f[plant.type == "hardwood"]

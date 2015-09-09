@@ -18,7 +18,7 @@ library(PEcAnRTM)
 library(ggplot2)
 library(gridExtra)
 library(grid)
-load("../data/simulation.samp.dat.RData")
+load("data/simulation.samp.dat.RData")
 
 #' To facilitate plot organization, we first change the sensor names to their 
 #' pretty versions (`sensor.proper`) and then convert the representation of the 

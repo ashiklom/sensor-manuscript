@@ -31,7 +31,7 @@ library(xtable)
 #' inversion parameter estimates are not `NA`, and only for tree species (i.e.  
 #' excluding shrubs and grasses).
 
-load("../data/FFT.processed.RData")
+load("data/FFT.processed.RData")
 fft.f <- fft.f[sensor=="identity"][!is.na(N.mu)][plant.type %in% c("hardwood", "conifer")]
 rm(fft.h, fft.c)
 
