@@ -17,13 +17,11 @@
 #' # Setup
 #' First, we load required packages. `PEcAnRTM` is used to perform simulations 
 #' and contains useful information vectors. `ggplot2`, `gridExtra`, and `grid` 
-#' are used to draw and arrange the figure. `xtable` is used to generate a 
-#' pretty LaTeX table from the R output.
+#' are used to draw and arrange the figure. 
 library(PEcAnRTM)
 library(ggplot2)
 library(gridExtra)
 library(grid)
-library(xtable)
 
 #' The data for generating simulated spectra come from the `fft.f` object from 
 #' the `FFT.processed.RData` file (for details, see `fft.load.R` and 
@@ -153,81 +151,90 @@ for(f in 1:nfiles){
     tem[,f] <- mod[,2] - obs[,2]
 }
 
-#' # Plotting the error
-#' Here, we define a function that takes an error matrix as input and produces 
-#' a nicely formatted `ggplot` graphic as output. The function first calculates 
-#' the mean and 80th and 95th percentiles of the error by wavelength. It then 
-#' draws the mean as a solid black line and the percentile regions as lightly 
-#' shaded regions bounded by dashed lines. We then apply this function to each 
-#' of the error matrices computed above.
+#' # Summarizing the error
+#' Here, we define a function that takes an error matrix as input and 
+#' calculates the mean and 80th and 95th percentiles of the error by 
+#' wavelength. It also calculates regions where the 95% confidence interval 
+#' does not overlap zero (`shade.max` and `shade.min`, so called because these 
+#' regions will be shaded in the plot). The `pft` and `measure` inputs are used 
+#' to specify the plant functional type (All, Broadleaf, or Conifer) and the 
+#' measurement type (Reflectance or Transmittance), respectively. 
 
-error.plot <- function(err.mat){
-    require(ggplot2)
+error.data <- function(err.mat, pft, measure){
     err.mat <- t(err.mat)
     err.means <- colMeans(err.mat, na.rm=TRUE)
     err.q <- apply(err.mat, 2, quantile, c(0.025,0.10,0.90,0.975), na.rm=TRUE)
-    err.dat <- data.table(wavelength = 400:2500, means=err.means)
+    err.dat <- data.table(wavelength = 400:2500, means=err.means,
+                          pft = pft, measure=measure)
     err.dat <- cbind(err.dat, t(err.q))
     setnames(err.dat, rownames(err.q), c("low2", "low1", "high1", "high2"))
+    err.dat[, shade.min := 0][, shade.max := 0]
+    err.dat[low2 > 0, shade.max := low2]
+    err.dat[high2 < 0, shade.min := high2]
+    return(err.dat)
+}
+
+#' We then generate a list of all the error matrices, along with their 
+#' corresponding plant and measurement types, and `mapply` the `error.data` 
+#' function to them to generate a list of `data.table`s. We then use the fast 
+#' `rbindlist` function to combine the list into a single `data.table`, which 
+#' will be used to generate the plot.
+
+em.list <- list(rem.all.raw, rem.h.raw, rem.c.raw,
+                tem.all.raw, tem.h.raw, tem.c.raw)
+pft.names <- c("All", "Broadleaf", "Conifer")
+pft.list <- rep(pft.names, 2)
+measure.list <- rep(c("Reflectance", "Transmittance"), each=3)
+dat.list <- mapply(error.data, em.list, pft.list, measure.list, SIMPLIFY=FALSE)
+dat.all <- rbindlist(dat.list)
+dat.all[, pft := factor(pft, levels = pft.names)]
+
+#' # Plotting the error
+#' Below, we create a function that takes the error data table and a string 
+#' describing the facets as input and produces a faceted `ggplot` of the error 
+#' as output. Specifically, the plot has a solid black line showing the mean 
+#' error, two shaded grey regions for the 90% and 95% confidence intervals, a 
+#' red line highlighting zero, and shaded red regions highlighting regions 
+#' significantly different from zero.
+
+error.plot <- function(err.dat, facet.string){
     err.spec <- ggplot(err.dat) +
         aes(x=wavelength) +
-        geom_line(aes(y=means)) +
-        geom_ribbon(aes(ymin=low1,ymax=high1), alpha=0.3, 
-                    fill="red", color="black", linetype="dotted", size=0.2) +
-        geom_ribbon(aes(ymin=low2,ymax=high2), alpha=0.3, 
-                    color="black", linetype="dashed", size=0.2) +
-        xlab("Wavelength(nm)") +
+        geom_ribbon(aes(ymin=low2,ymax=high2), alpha=0.5, 
+                    fill="grey", color="black", linetype="dashed", size=0.2) +
+        geom_ribbon(aes(ymin=low1,ymax=high1), alpha=0.5, 
+                    fill="grey", color="black", linetype="dotted", size=0.2) +
+        geom_line(aes(y=means), size=0.3) +
+        geom_hline(y=0, color="red", size=0.4) +
+        geom_ribbon(aes(ymin=shade.min, ymax=shade.max), fill="red") +
+        xlab("Wavelength (nm)") +
+        ylab("Error (model - observed)") +
+        facet_grid(facet.string, scales="free_y") +
         theme_bw() +
         theme(axis.title = element_text(size=10),
             axis.text = element_text(size=7))
+    return(err.spec)
 }
 
-re.all.raw <- error.plot(rem.all.raw)
-re.h.raw <- error.plot(rem.h.raw)
-re.c.raw <- error.plot(rem.c.raw)
-te.all.raw <- error.plot(tem.all.raw)
-te.h.raw <- error.plot(tem.h.raw)
-te.c.raw <- error.plot(tem.c.raw)
+#' Below, we apply our plot function to the data table we generated previously 
+#' and save the resulting plot to a PDF.
 
-re.sim.raw <- error.plot(rem)
-te.sim.raw <- error.plot(tem)
-
-#' We then define a common theme for all plots to ensure consistent font sizes 
-#' and margins.
-
-th.all <- theme_bw() +
-    theme(text = element_text(size=11),
-          axis.text = element_text(size=rel(0.6)),
-          axis.title = element_text(size=rel(0.8)),
-          plot.margin = unit(c(0.15, 0.15, 0.15, 0.15), "lines"))
-
-#' Next, we generate a simple, two-panel figure showing errors arising from the 
-#' inversion only. This figure is simpler than the subsequent figure showing 
-#' PROSPECT model errors, so it requires minimal post-processing
-
-re.sim <- re.sim.raw + ylab("Reflectance error (Model - Obs.)") + th.all
-te.sim <- te.sim.raw + ylab("Transmittance error (Model - Obs.)") + th.all
-pdf("manuscript/figures/sim-refltrans-validation.pdf", width=6, height=4)
-grid.arrange(re.sim, te.sim, nrow=2)
-dev.off()
-
-#' The following block generates a 6-panel figure showing errors between 
-#' inversion estimates and real spectra.  To emphasize differences between 
-#' hardwoods and conifers, we set common y-axis limits for reflectance and 
-#' again for transmittance. We also eliminate redundant axes where appropriate.
-
-th.mr <- theme(axis.title.y = element_blank()) 
-re.ylims <- ylim(-0.04, 0.04)
-te.ylims <- ylim(-0.28, 0.14)
-re.all <- re.all.raw + ggtitle("All") + ylab("Reflectance error (Model - Obs.)") + th.all + re.ylims
-re.h <- re.h.raw + ggtitle("Hardwood") + th.all + th.mr + re.ylims
-re.c <- re.c.raw + ggtitle("Conifer") + th.all + th.mr + re.ylims
-te.all <- te.all.raw + ylab("Transmittance error (Model - Obs.)") + th.all + te.ylims
-te.h <- te.h.raw + th.all + th.mr + te.ylims
-te.c <- te.c.raw + th.all + th.mr + te.ylims
+dat.plot <- error.plot(dat.all, "measure~pft")
 pdf("manuscript/figures/refltrans-validation.pdf", width=6, height=6)
-grid.arrange(re.all, re.h, re.c, te.all, te.h, te.c, nrow=2)
+plot(dat.plot)
 dev.off()
+
+#' Below, we repeat the above analyses, but on the re-simulated spectra.
+
+simdat.list <- mapply(error.data, list(rem, tem), "All", 
+                      c("Reflectance", "Transmittance"),
+                      SIMPLIFY=FALSE)
+simdat <- rbindlist(simdat.list)
+sim.plot <- error.plot(simdat, "measure~.")
+pdf("manuscript/figures/sim-refltrans-validation.pdf", width=3, height=4)
+plot(sim.plot)
+dev.off()
+
 
 #' # Error statistics table
 #' To facilitate comparison with other studies and due to their inherent 
@@ -265,36 +272,15 @@ rmse.wl <- function(mat){
     return(out)
 }
 
-#' We then apply the above function to each error matrix. For conciseness and 
-#' to facilitate merging the results into a single data table, we first create 
-#' a list containing all the error matrices, add informative names to the list, 
-#' and then use `lapply` to apply the error statistic function to each item of 
-#' the list. We then `cbind` the resulting list of vectors into a matrix.
+#' We then apply the above function to each error matrix, using `lapply` and 
+#' `cbind` similarly to what we did above.
 
-rtlist <- list(rem.all.raw, rem.h.raw, rem.c.raw,
-               tem.all.raw, tem.h.raw, tem.c.raw)
-cnames <- c("All-R", "Hardwood-R", "Conifer-R",
-            "All-T", "Hardwood-T", "Conifer-T")
-names(rtlist) <- cnames
-rmse.full<- lapply(rtlist, rmse.wl)
+cnames <- sprintf("%s-%s", measure.list, pft.list)
+names(em.list) <- cnames
+rmse.full<- lapply(em.list, rmse.wl)
 sumtab <- do.call(cbind, rmse.full)
 rownames(sumtab) <- c("VIS-RMSE", "VIS-BIAS", "VIS-SEPC",
                       "IR-RMSE", "IR-BIAS", "IR-SEPC")
 tsumtab <- t(sumtab)
-
-#' Finally, we use `xtable` combined with some post-processing to generate a 
-#' pretty LaTeX table of the results. Values are printed to 4 decimal places, 
-#' and the `centerline` TeX environment is used to center the table across the 
-#' entire page.
-
-cap <- "
-Modeled reflectance (R) and transmittance (T) error statistics.
-"
-cap <- gsub("\\n", " ", cap)
-out.tab <- xtable(tsumtab, caption=cap, label="tab:refltrans", digits=4)
-# Post processing
-out.tab.pre <- print(out.tab, file="", include.rownames=TRUE)
-out.tab.post <- out.tab.pre
-out.tab.post <- gsub("centering", "centerline{", out.tab.post)
-out.tab.post <- gsub("(end\\{tabular\\})", "\\1\n\\}", out.tab.post)
-cat(out.tab.post, file="manuscript/tables/refltrans.tex")
+print("Reflectance and transmittance validation: Table of summary statistics")
+print(tsumtab, digits=2)
