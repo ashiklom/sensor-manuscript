@@ -81,12 +81,16 @@ dev.off()
 #' the true parameter value.  To facilitate generation and customization of 
 #' this figure, we take advantage of the `sprintf` function for string 
 #' processing combined with the `aes_string` feature from ggplot to create a 
-#' common plotting function that we then `lapply` over the list of parameters 
+#' common plotting function that we then `mapply` over the list of parameters 
 #' and use `do.call` to arrange the resulting list of plots.
 
 gp2 <- ggplot(simulation.dat) + facet_grid(.~sensor) + geom_point(size=1) + gen.theme
-plt.error <- function(param, string)
-    gp2 + aes_string(x=param, y=sprintf(string, param)) + no.x
+plt.error <- function(param, string, parname){
+    lab <- sprintf("pi(%s)", parname)
+    plt <- gp2 + aes_string(x=param, y=sprintf(string, param)) + no.x +
+        ylab(parse(text=lab))
+    return(plt)
+}
 
 # Plot of relative error vs.
 #cv.str <- "%1$s.mu/%1$s - 1"
@@ -94,7 +98,8 @@ plt.error <- function(param, string)
 #do.call(grid.arrange, cv.list)
 
 riqr.str <- "(%1$s.q975 - %1$s.q25)/%1$s.mu"
-riqr.list <- c(lapply(params.prospect5, plt.error, string=riqr.str), ncol=1)
+riqr.list <- c(mapply(plt.error, params.prospect5, riqr.str, params.prospect5, SIMPLIFY=FALSE), 
+               ncol=1)
 pdf("manuscript/figures/sensor-riqr.pdf", height=7, width=7)
 do.call(grid.arrange, riqr.list)
 dev.off()
