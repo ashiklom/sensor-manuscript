@@ -13,13 +13,11 @@
 
 #' # Setup
 #' First, we load dependencies and data. `PEcAnRTM` is loaded for parameter 
-#' naming and for its implicit use of the `data.table` package; `xtable` allows
-#' exporting of R data objects into automatically formatted LaTeX or HTML 
-#' tables.  For information on how `simulation.samp.dat.RData` is generated, 
-#' see the `load.sim.R` script.
+#' naming and for its implicit use of the `data.table` package. For information 
+#' on how `simulation.samp.dat.RData` is generated, see the `load.sim.R` 
+#' script.
 
 library(PEcAnRTM)
-library(xtable)
 load("data/simulation.samp.dat.RData")
 
 #' To facilitate ordering of the table, we convert the representation of the 
@@ -52,10 +50,14 @@ simulation.dat[, Cm.cv := 100 * (Cm.mu - Cm)/Cm]
 #' Next, we use `data.table` aggregation syntax to compute the mean values by 
 #' sensor of each of the above statistics for each parameter.
 
-rnames <- sprintf("%s.rsd", params.prospect5)
-cnames <- sprintf("%s.cv", params.prospect5)
+rnames <- sprintf("%s.pi", params.prospect5)
+cnames <- sprintf("%s.alpha", params.prospect5)
 sensor.table <- simulation.dat[, lapply(.SD, mean, na.rm=TRUE), by=sensor, 
                         .SDcols=c(rnames, cnames)]
+setkey(sensor.table, sensor)
+sensor.table <- sensor.table[sensor.list]
+sensor.table[, sensor := sensor.proper[sensor]]
+print(sensor.table, digits=3)
 
 #' # Table formatting
 #' Rather than using ugly R variable names, we add more informative row and 
@@ -64,9 +66,6 @@ sensor.table <- simulation.dat[, lapply(.SD, mean, na.rm=TRUE), by=sensor,
 #' containing the names of sensors as used by R (`sensor.list`) and properly 
 #' formatted for publication (`sensor.proper`). 
 
-setkey(sensor.table, sensor)
-sensor.table <- sensor.table[sensor.list]
-sensor.table[, sensor := sensor.proper[sensor]]
 setcolorder(sensor.table, c("sensor", rnames, cnames))
 setnames(sensor.table, "sensor", "Sensor")
 setnames(sensor.table, cnames, sprintf("$\\alpha(\\mathrm{%s})$", params.prospect5))
