@@ -15,14 +15,12 @@
 #' # Setup
 #' First, we load package dependencies. PEcAnRTM is used for parameter name 
 #' shortcuts as well as the implicitly loaded `data.table` package. `ggplot2`, 
-#' `gridExtra`, and `grid` are used for generating the figure. `xtable` is used 
-#' for pretty LaTeX output.
+#' `gridExtra`, and `grid` are used for generating the figure.
 
 library(PEcAnRTM)
 library(ggplot2)
 library(gridExtra)
 library(grid)
-library(xtable)
 
 #' The data used for this script is the `fft.f` data table (see `load.fft.R` 
 #' and `preprocess.fft.R` for details). Here, we subset this data to include 
@@ -159,29 +157,14 @@ rmse <- function(mod, obs){
 
 #' Then, we use `data.table` syntax to apply the function to the `fft.f` data 
 #' table by plant type. We use `rbind` to combine the two resulting tables into 
-#' one and manually reorder and rename the columns.
+#' one and manually reorder and rename the columns. Finally, we print the table 
+#' to the screen.
 
 rmse.water <- fft.f[, rmse(Cw.mu, EWT_g_cm2), by=plant.type][,param := "EWT"]
-rmse.lma <- fft.f[, rmse(Cm.mu.gm2, LMA_gm2), by=plant.type][,param := "LMA"]
+rmse.lma <- fft.f[, rmse(Cm.mu, LMA_g_DW_cm2), by=plant.type][,param := "LMA"]
 rmse.table <- rbind(rmse.water, rmse.lma)
-
 setcolorder(rmse.table, c("param", "plant.type", "RMSE", "BIAS", "SEPC", "CV", "RMSPE"))
 setnames(rmse.table, c("param", "plant.type"), c("Parameter", "Plant type"))
-
-#' Finally, we use `xtable` with some post-processing to output the resulting 
-#' table as LaTeX.  Note that 4 decimal places are used and the body of the 
-#' table is wrapped in the `centerline` environment to center it across the 
-#' entire page width.
-
-cap <- "
-Error statistics for equivalent water thickness (EWT) and leaf mass per unit area (LMA)
-model estimates compared to inversion.
-"
-cap <- gsub("\\n", " ", cap)
-out.tab <- xtable(rmse.table, caption=cap, digits=4, label="tab:water-lma")
-out.tab.pre <- print(out.tab, file="", include.rownames=FALSE)
-out.tab.post <- out.tab.pre
-out.tab.post <- gsub("centering", "centerline{", out.tab.post)
-out.tab.post <- gsub("(end\\{tabular\\})", "\\1\n\\}", out.tab.post)
-cat(out.tab.post, file="manuscript/tables/water-lma.tex")
+print("Error stats for EWT and LMA model estimates compared to inversion.")
+print(rmse.table, digits=4)
 
