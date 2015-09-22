@@ -2,7 +2,7 @@
 
 # Generate scripts for inversions on known parameters
 library(PEcAnRTM)
-load("../data/FFT.processed.RData")
+load("data/FFT.processed.RData")
 vars <- sprintf("%s.mu", params.prospect5)
 fft.sub <- fft.f[!is.na(N.mu)][sensor=="identity"][,vars,with=F]
 quants <- fft.sub[, lapply(.SD, quantile, c(0.05, 0.95))]
