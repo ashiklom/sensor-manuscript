@@ -67,10 +67,10 @@ true.param <- unlist(f.list[params.prospect5])
 #' # Generating the plots
 #' For convenience, we define the colors for the plots here and reference this 
 #' vector in the function.
-col.sensor <- c("identity" = "orange",
-                "aviris.ng" = "dark blue",
-                "landsat8" = "dark red",
-                "modis" = "dark green")
+col.sensor <- c("identity" = "dark red",
+                "aviris.ng" = "cyan",
+                "landsat8" = "dark blue",
+                "modis" = "orange")
 
 #' By default, R's plot function sets axes based on the entire width of the 
 #' data. This doesn't actually work very well for contour plots because the 
@@ -89,7 +89,7 @@ quant <- c(0.015, 0.985)
 #' optional arguments. 
 densplot <- function(x, y, color="black", lwd=1){
     z <- kde2d(x, y, n=50)
-    nlev <- 7
+    nlev <- 5
     zlim <- range(z$z, finite=TRUE)
     levs <- seq(zlim[1], zlim[2], length.out=nlev)
     contour(z, drawlabels=FALSE, levels=levs, add=TRUE, col=color, lwd=lwd)
@@ -137,9 +137,9 @@ identity.plot <- function(nx, ny){
     plot(xrange, yrange, type='n', xaxt='n', yaxt='n')
     if(ny == 1) axis(3, at=pretty(xrange), labels=pretty(xrange))
     if(nx == 5) axis(4, at=pretty(yrange), labels=pretty(yrange))
-    densplot(x, y)
-    abline(v=true.param[nx], lwd=1.5, lty=2)
-    abline(h=true.param[ny], lwd=1.5, lty=2)
+    densplot(x, y, color=col.sensor["identity"])
+    abline(v=true.param[nx], lwd=1, lty=2)
+    abline(h=true.param[ny], lwd=1, lty=2)
 }
 
 #' Finally, we draw the panels. The list `plt.list` contains information about 
@@ -158,12 +158,12 @@ plt.list <- list("N", c(2, 1, 1), c(3, 1, 1), c(4, 1, 1), c(5, 1, 1),
                  c(1, 5, 2), c(2, 5, 2), c(3, 5, 2), c(4, 5, 2), "Cm")
 
 pdf(file="manuscript/drive-folder/pairs-4.pdf", width=7, height=5)
-par(mfrow=c(5,5), mar=c(1,1,1,1), oma=c(2,2,2,2))
+par(mfrow=c(5,5), mar=c(0.4, 0.5, 0.4, 0.5), oma=c(2,2,2,2), cex.axis=0.8)
 for(p in plt.list){
     if(is.character(p)){
 # Diagonal -- write parameter
         plot(c(0,1), c(0,1), ann=F, type='n', xaxt='n', yaxt='n')
-        text(x=0.5, y=0.5, p, cex=2)
+        text(x=0.5, y=0.5, p, cex=1.3)
     } else if(p[3] == 1) {
 # Upper panel -- plot full spectra densplot
         identity.plot(p[1], p[2])
@@ -173,7 +173,7 @@ for(p in plt.list){
     }
 }
 par(xpd=TRUE)
-legend(-0.09, 0.28, c("Full", "AVIRIS", "Landsat8", "MODIS"), 
+legend(-0.05, 0.4, c("Full", "AVIRIS", "Landsat 8", "MODIS"), 
        pch=16, col=col.sensor, 
        bty='n', ncol=2, x.intersp=0.5, text.width=0.33)
 dev.off()
