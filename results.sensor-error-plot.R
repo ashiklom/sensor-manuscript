@@ -49,14 +49,14 @@ simulation.dat[Car.mu/Car > 2,
 #' other using the `grid.arrange` function.
 
 gen.theme <- theme_bw() + 
-    theme(axis.text = element_text(size=4),
-          strip.text = element_text(size=5),
-          axis.title.y = element_text(size=8),
+    theme(axis.text = element_text(size=9),
+          strip.text = element_text(size=11),
+          axis.title.y = element_text(size=28),
           plot.margin = unit(c(0.2, 0.2, 0, 0), "lines"))
 no.x <- theme(axis.title.x = element_blank())
 gen.plot <- ggplot(simulation.dat) + 
-    facet_grid(.~sensor) + geom_point(size=1) +
-    geom_abline(linetype="dashed", color="red") +
+    facet_grid(.~sensor) + geom_point(size=2) +
+    geom_abline(linetype="dashed", color="red", size=1.5) +
     gen.theme
 N.plot <- gen.plot + aes(x=N, y=N.mu) + ylab("N") + no.x +
     scale_x_continuous(breaks=c(1, 1.6, 2.2, 2.8, 3.4))
@@ -64,13 +64,13 @@ Cab.plot <- gen.plot + aes(x=Cab, y=Cab.mu) + ylab("Cab") + no.x
 y1 <- 21
 y2 <- 23
 Car.plot <- gen.plot + aes(x=Car, y=Car.mu) + ylab("Car") + no.x + ylim(0,y2) +
-    geom_segment(aes(x=Car.out.x, y=y1, xend=Car.out.x, yend=y2), size=0.1, color="purple",
-                 arrow=arrow(length=unit(0.01, "in"), type="closed"))
+    geom_segment(aes(x=Car.out.x, y=y1, xend=Car.out.x, yend=y2), size=0.6, color="purple",
+                 arrow=arrow(length=unit(0.06, "in"), type="closed"))
 Cw.plot <- gen.plot + aes(x=Cw, y=Cw.mu) + ylab("Cw") + no.x +
     scale_x_continuous(breaks=c(0.01, 0.03, 0.05))
 Cm.plot <- gen.plot + aes(x=Cm, y=Cm.mu) + ylab("Cm") + no.x +
     scale_x_continuous(breaks=c(0.005, 0.015, 0.025))
-pdf("manuscript/figures/sensor-bias.pdf", height=7, width=7)
+png("manuscript/figures/sensor-bias.png", height=14, width=14, units="in", res=300, pointsize=25)
 grid.arrange(N.plot, Cab.plot, Car.plot, Cw.plot, Cm.plot, ncol=1)
 dev.off()
 

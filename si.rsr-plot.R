@@ -33,7 +33,11 @@ sensors.to.plot <- sensor.rsr[!names(sensor.rsr) %in% sensors.remove]
 #' line plot. 
 
 pdf("manuscript/figures/sensor-rsr.pdf", width=7, height=7)
-par(mfrow = c(4,2), mar=c(2.5, 2.5, 2, 1))
+par(mfrow = c(5,2), mar=c(2.5, 2.5, 2, 1))
+data(testspec)
+s1 <- testspec_ACRU[,1]
+plot(400:2500, s1, type='l', xlab="Wavelength", ylab="Reflectance")
+plot(400:2500, s1, type='l', xlab="Wavelength", ylab="Reflectance")
 for(s.name in names(sensors.to.plot)){
     s <- sensors.to.plot[[s.name]]
     s.proper <- sensor.proper[s.name]
