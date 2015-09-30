@@ -157,8 +157,8 @@ plt.list <- list("N", c(2, 1, 1), c(3, 1, 1), c(4, 1, 1), c(5, 1, 1),
                  c(1, 4, 2), c(2, 4, 2), c(3, 4, 2), "Cw", c(5, 4, 1),
                  c(1, 5, 2), c(2, 5, 2), c(3, 5, 2), c(4, 5, 2), "Cm")
 
-pdf(file="manuscript/drive-folder/pairs-4.pdf", width=7, height=5)
-par(mfrow=c(5,5), mar=c(0.4, 0.5, 0.4, 0.5), oma=c(2,2,2,2), cex.axis=0.8)
+png(file="manuscript/drive-folder/pairs-4.png", width=14, height=10, units="in", res=300, pointsize=25)
+par(mfrow=c(5,5), mai=c(0.1, 0.2, 0.1, 0.2), oma=c(2,2,2,2), cex.axis=0.8)
 for(p in plt.list){
     if(is.character(p)){
 # Diagonal -- write parameter
@@ -173,7 +173,7 @@ for(p in plt.list){
     }
 }
 par(xpd=TRUE)
-legend(-0.05, 0.4, c("Full", "AVIRIS", "Landsat 8", "MODIS"), 
+legend(-0.09, 0.45, c("Full", "AVIRIS", "Landsat 8", "MODIS"), 
        pch=16, col=col.sensor, 
        bty='n', ncol=2, x.intersp=0.5, text.width=0.33)
 dev.off()

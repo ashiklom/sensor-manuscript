@@ -133,23 +133,23 @@ tem.c.raw <- error.matrix(fft.f[plant.type=="conifer"], trans, 2)
 #' generator).  To generate the modeled spectra, we run PROSPECT using the mean 
 #' values of the inversion estimates.
 
-set.seed(777)
-fpath <- "identity-results"
-flist <- list.files(fpath)
-nfiles <- length(flist)
-rem <- matrix(NA, 2101, nfiles)
-tem <- matrix(NA, 2101, nfiles)
-for(f in 1:nfiles){
-    print(sprintf("%d of %d", f, nfiles))
-    fname <- flist[f]
-    f.list <- load.from.name(fname, fpath)
-    obs <- with(f.list, prospect(c(N, Cab, Car, Cw, Cm), 5))
-    obs[,1] <- obs[,1] + f.list$noise
-    obs[,2] <- obs[,2] + generate.noise(fw=11, sigma=0.00025, fsd=2)
-    mod <- with(f.list, prospect(c(N.mu, Cab.mu, Car.mu, Cw.mu, Cm.mu), 5))
-    rem[,f] <- mod[,1] - obs[,1]
-    tem[,f] <- mod[,2] - obs[,2]
-}
+#set.seed(777)
+#fpath <- "identity-results"
+#flist <- list.files(fpath)
+#nfiles <- length(flist)
+#rem <- matrix(NA, 2101, nfiles)
+#tem <- matrix(NA, 2101, nfiles)
+#for(f in 1:nfiles){
+    #print(sprintf("%d of %d", f, nfiles))
+    #fname <- flist[f]
+    #f.list <- load.from.name(fname, fpath)
+    #obs <- with(f.list, prospect(c(N, Cab, Car, Cw, Cm), 5))
+    #obs[,1] <- obs[,1] + f.list$noise
+    #obs[,2] <- obs[,2] + generate.noise(fw=11, sigma=0.00025, fsd=2)
+    #mod <- with(f.list, prospect(c(N.mu, Cab.mu, Car.mu, Cw.mu, Cm.mu), 5))
+    #rem[,f] <- mod[,1] - obs[,1]
+    #tem[,f] <- mod[,2] - obs[,2]
+#}
 
 #' # Summarizing the error
 #' Here, we define a function that takes an error matrix as input and 
@@ -201,39 +201,38 @@ error.plot <- function(err.dat, facet.string){
     err.spec <- ggplot(err.dat) +
         aes(x=wavelength) +
         geom_ribbon(aes(ymin=low2,ymax=high2), alpha=0.5, 
-                    fill="grey", color="black", linetype="dashed", size=0.2) +
+                    fill="grey", color="black", linetype="dashed", size=0.4) +
         geom_ribbon(aes(ymin=low1,ymax=high1), alpha=0.5, 
-                    fill="grey", color="black", linetype="dotted", size=0.2) +
-        geom_line(aes(y=means), size=0.3) +
-        geom_hline(y=0, color="red", size=0.4) +
+                    fill="grey", color="black", linetype="dotted", size=0.4) +
+        geom_line(aes(y=means), size=0.6) +
+        geom_hline(y=0, color="red", size=0.8) +
         geom_ribbon(aes(ymin=shade.min, ymax=shade.max), fill="red") +
         xlab("Wavelength (nm)") +
         ylab("Error (model - observed)") +
         facet_grid(facet.string, scales="free_y") +
         theme_bw() +
-        theme(axis.title = element_text(size=10),
-            axis.text = element_text(size=7))
+        theme(text = element_text(size=25),
+              axis.title = element_text(size=rel(1)),
+            axis.text = element_text(size=rel(0.7)))
     return(err.spec)
 }
-
 #' Below, we apply our plot function to the data table we generated previously 
 #' and save the resulting plot to a PDF.
-
 dat.plot <- error.plot(dat.all, "measure~pft")
-pdf("manuscript/figures/refltrans-validation.pdf", width=6, height=6)
+png("manuscript/figures/refltrans-validation.png", width=14, height=14, units="in", res=300, pointsize=25)
 plot(dat.plot)
 dev.off()
 
 #' Below, we repeat the above analyses, but on the re-simulated spectra.
 
-simdat.list <- mapply(error.data, list(rem, tem), "All", 
-                      c("Reflectance", "Transmittance"),
-                      SIMPLIFY=FALSE)
-simdat <- rbindlist(simdat.list)
-sim.plot <- error.plot(simdat, "measure~.")
-pdf("manuscript/figures/sim-refltrans-validation.pdf", width=3, height=4)
-plot(sim.plot)
-dev.off()
+#simdat.list <- mapply(error.data, list(rem, tem), "All", 
+                      #c("Reflectance", "Transmittance"),
+                      #SIMPLIFY=FALSE)
+#simdat <- rbindlist(simdat.list)
+#sim.plot <- error.plot(simdat, "measure~.")
+#pdf("manuscript/figures/sim-refltrans-validation.pdf", width=3, height=4)
+#plot(sim.plot)
+#dev.off()
 
 
 #' # Error statistics table
@@ -241,46 +240,46 @@ dev.off()
 #' differences, we compute statistics separately for the visible (VIS) and near 
 #' infrared (NIR) regions of the spectrum, defined here.
 
-vis.wl <- 400:800
-nir.wl <- 801:2500
+#vis.wl <- 400:800
+#nir.wl <- 801:2500
 
 #' We define a function that takes a matrix as input and returns a vector 
 #' containing the values of error statistics as output. For each statistic, we 
 #' first compute the statistic for each wavelength and then calculate a mean 
 #' according the spectral region of interest.
 
-rmse.wl <- function(mat){
-    mat <- t(mat)
-    i.vis <- vis.wl - 399
-    i.nir <- nir.wl - 399
-    rmse <- apply(mat, 2, function(x) sqrt(mean(x^2, na.rm=TRUE)))
-    rmse.vis <- mean(rmse[i.vis], na.rm=TRUE)
-    rmse.nir <- mean(rmse[i.nir], na.rm=TRUE)
-    bias <- apply(mat, 2, mean, na.rm=TRUE)
-    bias.vis <- mean(bias[i.vis], na.rm=TRUE)
-    bias.nir <- mean(bias[i.nir], na.rm=TRUE)
-    err.c <- t(apply(mat, 1, "+", -bias))
-    sepc <- apply(err.c, 2, function(x) sqrt(mean(x^2, na.rm=TRUE)))
-    sepc.vis <- mean(sepc[i.vis], na.rm=TRUE)
-    sepc.nir <- mean(sepc[i.nir], na.rm=TRUE)
-    out <- c("rmse.vis"=rmse.vis,
-             "bias.vis"=bias.vis,
-             "sepc.vis"=sepc.vis,
-             "rmse.nir"=rmse.nir,
-             "bias.nir"=bias.nir,
-             "sepc.nir"=sepc.nir)
-    return(out)
-}
+#rmse.wl <- function(mat){
+    #mat <- t(mat)
+    #i.vis <- vis.wl - 399
+    #i.nir <- nir.wl - 399
+    #rmse <- apply(mat, 2, function(x) sqrt(mean(x^2, na.rm=TRUE)))
+    #rmse.vis <- mean(rmse[i.vis], na.rm=TRUE)
+    #rmse.nir <- mean(rmse[i.nir], na.rm=TRUE)
+    #bias <- apply(mat, 2, mean, na.rm=TRUE)
+    #bias.vis <- mean(bias[i.vis], na.rm=TRUE)
+    #bias.nir <- mean(bias[i.nir], na.rm=TRUE)
+    #err.c <- t(apply(mat, 1, "+", -bias))
+    #sepc <- apply(err.c, 2, function(x) sqrt(mean(x^2, na.rm=TRUE)))
+    #sepc.vis <- mean(sepc[i.vis], na.rm=TRUE)
+    #sepc.nir <- mean(sepc[i.nir], na.rm=TRUE)
+    #out <- c("rmse.vis"=rmse.vis,
+             #"bias.vis"=bias.vis,
+             #"sepc.vis"=sepc.vis,
+             #"rmse.nir"=rmse.nir,
+             #"bias.nir"=bias.nir,
+             #"sepc.nir"=sepc.nir)
+    #return(out)
+#}
 
-#' We then apply the above function to each error matrix, using `lapply` and 
-#' `cbind` similarly to what we did above.
+##' We then apply the above function to each error matrix, using `lapply` and 
+##' `cbind` similarly to what we did above.
 
-cnames <- sprintf("%s-%s", measure.list, pft.list)
-names(em.list) <- cnames
-rmse.full<- lapply(em.list, rmse.wl)
-sumtab <- do.call(cbind, rmse.full)
-rownames(sumtab) <- c("VIS-RMSE", "VIS-BIAS", "VIS-SEPC",
-                      "IR-RMSE", "IR-BIAS", "IR-SEPC")
-tsumtab <- t(sumtab)
-print("Reflectance and transmittance validation: Table of summary statistics")
-print(tsumtab, digits=2)
+#cnames <- sprintf("%s-%s", measure.list, pft.list)
+#names(em.list) <- cnames
+#rmse.full<- lapply(em.list, rmse.wl)
+#sumtab <- do.call(cbind, rmse.full)
+#rownames(sumtab) <- c("VIS-RMSE", "VIS-BIAS", "VIS-SEPC",
+                      #"IR-RMSE", "IR-BIAS", "IR-SEPC")
+#tsumtab <- t(sumtab)
+#print("Reflectance and transmittance validation: Table of summary statistics")
+#print(tsumtab, digits=2)
