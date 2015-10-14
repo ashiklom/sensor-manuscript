@@ -68,6 +68,6 @@ pCw <- ggplot(xx) + aes(x=Cw.x) + lab.Cw + ylab("Density") +
 pCm <- ggplot(xx) + aes(x=Cm.x) + lab.Cm + th.noY +
     stat_function(fun=dlnorm, arg=list(pmu["Cm"], psd["Cm"])) + th.prior + th.noY
 
-pdf("manuscript/figures/priors.pdf", height=3, width=4)
+png("manuscript/figures/priors.png", height=3, width=4, units="in", res=300)
 grid.arrange(pN, pCab, pCar, pCw, pCm, nrow=2)
 dev.off()
