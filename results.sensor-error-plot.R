@@ -100,7 +100,7 @@ plt.error <- function(param, string, parname){
 riqr.str <- "(%1$s.q975 - %1$s.q25)/%1$s.mu"
 riqr.list <- c(mapply(plt.error, params.prospect5, riqr.str, params.prospect5, SIMPLIFY=FALSE), 
                ncol=1)
-pdf("manuscript/figures/sensor-riqr.pdf", height=7, width=7)
+png("manuscript/figures/sensor-riqr.png", height=9, width=7, units="in", res=300)
 do.call(grid.arrange, riqr.list)
 dev.off()
 

@@ -32,7 +32,7 @@ for(n in mat.names){
 
 lb <- c("N"="(a)", "Cab"="(b)", "Car"="(c)", "Cw"="(d)", "Cm"="(e)")
 pal <- blue2green(nl)
-pdf("manuscript/drive-folder/sensitivity.pdf", height=3, width=4)
+png("manuscript/drive-folder/sensitivity.png", height=3, width=4, units="in", res=300, pointsize=10)
 par(mfrow=c(3,2), mar=c(2.5, 2.5, 1.5, 0.6), cex=0.7, cex.axis=0.85)
 for(n in mat.names) {
     matplot(x=400:2500, mat.lr[[n]], type='l', col=pal, lty=1,

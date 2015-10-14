@@ -32,7 +32,7 @@ sensors.to.plot <- sensor.rsr[!names(sensor.rsr) %in% sensors.remove]
 #' wavelength (400-2500) by adding 399, extract the proper name, and draw the 
 #' line plot. 
 
-pdf("manuscript/figures/sensor-rsr.pdf", width=7, height=7)
+png("manuscript/figures/sensor-rsr.png", width=5, height=7, units="in", res=300, pointsize=10)
 par(mfrow = c(5,2), mar=c(2.5, 2.5, 2, 1))
 data(testspec)
 s1 <- testspec_ACRU[,1]
