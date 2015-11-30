@@ -28,3 +28,5 @@ for(n in nruns){
     }
 }
 
+system("chmod +x run-scripts/run-noise.sh")
+system("./run-scripts/run-noise.sh")
