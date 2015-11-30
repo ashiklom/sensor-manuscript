@@ -1,16 +1,10 @@
-#' Arguments: N, Cab, Car, Cw, Cm, sensor, ngibbs, run.name
+# Arguments : Index, sensor, run.name
 library(PEcAnRTM)
-if(exists("TEST")) {
-    arg <- c(77, "identity", 10000, "testrun")
-    do.mle <- TRUE
-    quiet <- FALSE
-} else {
-    arg <- commandArgs(trailingOnly=TRUE)
-    do.mle <- TRUE
-    quiet <- TRUE
-}
+data(sensor.rsr)
+arg <- commandArgs(trailingOnly=TRUE)
+if(length(arg) == 0) arg <- c("1", "chris.proba", "testrun")
 
-#' Process arguments and load data
+# Load inputs and arguments
 load("simulation.inputs.RData")
 parnames <- params.prospect5
 index <- as.numeric(arg[1])
@@ -19,50 +13,57 @@ names(true.params) <- parnames
 obs.raw <- obs.mat[,index]
 noise <- noise.mat[,index]
 sensor <- arg[2]
-ngibbs <- as.numeric(arg[3])
-run.name <- arg[4]
+run.name <- arg[3]
 
-#' Set up inversion parameters
-prior.vals <- prior.defaultvals.prospect(sd.inflate = 3)
-start.params <- rlnorm(5, prior.vals$mu, prior.vals$sigma)
-names(start.params) <- parnames
-start.params["N"] <- start.params["N"] + 1
-pm <- c(1,0,0,0,0)
-data(sensor.rsr)
-model <- function(params, constants) spectral.response(prospect(params, 5)[,1], sensor)
-prior <- priorfunc.prospect(prior.vals$mu, prior.vals$sigma)
-obs <- spectral.response(obs.raw, sensor)
+# Inversion parameters
+observed <- spectral.response(obs.raw, sensor)
+ngibbs <- 100000
+burnin <- 80000
+nchains <- 5
+n.tries <- 5
+return.samples <- TRUE
+version <- 5
+target <- 0.234
+target.adj <- 0.8
+do.lsq.first <- FALSE
+do.lsq.after <- 3
+save.samples <- NULL
+quiet <- TRUE
 
-#' Perform inversion
-samples <- invert.slow(observed = obs,
-                       inits = start.params,
-                       constants = NULL,
-                       ngibbs = ngibbs,
-                       prior = prior,
-                       pm = pm,
-                       model = model,
-                       do.mle = do.mle,
-                       quiet = quiet)
+# Get column names from summary.simple function (a bit of a hack)
+samps <- matrix(0, nrow=1, ncol=6)
+colnames(samps) <- c(params.prospect5, "residual")
+samps.summary <- summary.simple(samps)
+cnames <- names(samps.summary)
 
-#' Process samples
-samples.sub <- burnin.thin(samples)
-samples.summary <- summary.mvnorm(samples.sub)
-
-l <- list(noise = noise, obs.raw = obs.raw, sensor = sensor, fname = run.name, samples = samples)
-assign(run.name, c(as.list(true.params), as.list(samples.summary), l))
-
-if(exists("TEST")){
-    par(mfrow = c(5,2))
-    sb <- samples[-5000:0,1:5]
-    #sb <- samples[-(floor(ngibbs*0.5)):0,1:5]
-    for(i in 1:5){
-        plot(samples[,i], type='l')
-        abline(h = true.params[i], col="red")
-        plot(density(sb[,i]))
-        abline(v = true.params[i], col="red")
-    }
-    pplt <- function() pairs(sb, pch=".")
-} else {
-    save(list=run.name, file=sprintf("../results-simulation/%s.RData", run.name))
+# Set up custom PROSPECT inversion parameters
+model <- function(param) spectral.response(prospect(param, version)[,1], sensor)
+prior.params <- prior.defaultvals.prospect(sd.inflate = 3)
+prior.function <- with(prior.params, priorfunc.prospect(mu, sigma))
+pm <- c(1, 0, 0, 0, 0)
+inits.function <- function(){
+    inits <- with(prior.params, rlnorm(5, mu, sigma))
+    inits[1] <- inits[1] + 1
+    names(inits) <- params.prospect5
+    return(inits)
 }
 
+out <- invert.auto(observed = observed,
+                   model = model,
+                   ngibbs = ngibbs,
+                   nchains = nchains,
+                   prior.function = prior.function,
+                   inits.function = inits.function,
+                   param.mins = pm,
+                   burnin = burnin,
+                   n.tries = n.tries,
+                   return.samples = return.samples,
+                   target.adj = target.adj,
+                   do.lsq.first = do.lsq.first,
+                   do.lsq.after = do.lsq.after,
+                   save.samples = save.samples)
+
+results <- c(true.params, out$results)
+samples <- out$samples
+write.csv(results, file=sprintf("results/%s.csv", run.name))
+save(samples, file=sprintf("samples/%s.RData", run.name))
