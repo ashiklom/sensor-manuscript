@@ -5,3 +5,4 @@ identity-results
 *.RData
 */*.RData
 */*/*.RData
+run-scripts/run-noise.sh
