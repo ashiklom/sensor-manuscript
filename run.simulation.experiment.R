@@ -31,5 +31,5 @@ submit.string <- sprintf('qsub -V -v index=%d,sensor=%s,runname=%s -N "%s" submi
 fname <- "run-scripts/run.simulation.sh"
 write("#!/bin/bash", file=fname)
 write(submit.string, file=fname, append=TRUE)
-system(paste0("chmod +x", fname))
+system(paste0("chmod +x ", fname))
 system("cd run-scripts; ./run.simulation.sh")
