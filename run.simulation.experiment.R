@@ -2,7 +2,7 @@
 
 # Generate scripts for inversions on known parameters
 library(PEcAnRTM)
-load("curated-leafspec/processed-spec-data/fft.RData")
+load("curated-leafspec/processed-spec-data/all.results.RData")
 vars <- sprintf("%s.mu", params.prospect5)
 fft.sub <- results[grepl("FFT", sample_id),vars,with=F]
 quants <- fft.sub[, lapply(.SD, quantile, c(0.05, 0.95))]
@@ -24,11 +24,12 @@ n.sensor <- length(sensor.list)
 index <- rep(1:npar, each=n.sensor)
 sensor <- rep(sensor.list, npar)
 runname <- sprintf("%s.%d", sensor, rep(1:npar, each=n.sensor))
-submit.string <- sprintf('qsub -V -v index=%d,sensor=%s,ngibbs=%d,runname=%s -N "%s" submit.simulated.qsub',
+submit.string <- sprintf('qsub -V -v index=%d,sensor=%s,runname=%s -N "%s" submit.simulated.qsub',
                          index, sensor, runname, runname)
 
 # Create submission script and execute
 fname <- "run-scripts/run.simulation.sh"
 write("#!/bin/bash", file=fname)
 write(submit.string, file=fname, append=TRUE)
-system(paste0("./", fname.sh))
+system(paste0("chmod +x", fname))
+system("cd run-scripts; ./run.simulation.sh")
