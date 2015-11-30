@@ -2,7 +2,7 @@
 
 # Generate scripts for inversions on known parameters
 library(PEcAnRTM)
-load("processed-spec-data/fft.RData")
+load("curated-leafspec/processed-spec-data/fft.RData")
 vars <- sprintf("%s.mu", params.prospect5)
 fft.sub <- results[grepl("FFT", sample_id),vars,with=F]
 quants <- fft.sub[, lapply(.SD, quantile, c(0.05, 0.95))]
