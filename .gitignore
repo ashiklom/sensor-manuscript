@@ -6,3 +6,4 @@ identity-results
 */*.RData
 */*/*.RData
 run-scripts/run-noise.sh
+run-scripts/run.simulation.sh
