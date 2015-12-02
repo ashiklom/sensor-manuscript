@@ -29,4 +29,4 @@ for(f in flist.full){
 #' very efficient row binding of multiple list objects. 
 library(data.table)
 simulation.dat <- do.call(rbindlist, list(results.list)) 
-save(simulation.dat, file="../data/simulation.samp.dat.RData")
+save(simulation.dat, file="../data/simulation.results.RData")

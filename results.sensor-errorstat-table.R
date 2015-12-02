@@ -14,11 +14,11 @@
 #' # Setup
 #' First, we load dependencies and data. `PEcAnRTM` is loaded for parameter 
 #' naming and for its implicit use of the `data.table` package. For information 
-#' on how `simulation.samp.dat.RData` is generated, see the `load.sim.R` 
+#' on how `simulation.results.RData` is generated, see the `load.sim.R` 
 #' script.
 
 library(PEcAnRTM)
-load("data/simulation.samp.dat.RData")
+load("data/simulation.results.RData")
 
 #' To facilitate ordering of the table, we convert the representation of the 
 #' sensor in the data table (NOTE: `simulation.dat` is a `data.table` object, 
