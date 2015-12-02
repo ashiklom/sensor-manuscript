@@ -26,5 +26,12 @@ close(pb)
 
 simulation.dat <- rbindlist(results.list)
 simulation.dat[, V1 := NULL]
+
+# Convert units of Cw and Cm from g cm-2 to g m-2
+convert <- names(simulation.dat)[grepl("C[wm]", names(simulation.dat))]
+for(j in convert){
+    set(simulation.dat, j=j, value=simulation.dat[[j]]*10000)
+}
+
 save(results, file="data/simulation.results.RData")
 
