@@ -26,5 +26,5 @@ close(pb)
 
 simulation.dat <- rbindlist(results.list)
 simulation.dat[, V1 := NULL]
-save(results, file="data/simulation.results.RData")
+save(simulation.dat, file="data/simulation.results.RData")
 
