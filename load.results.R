@@ -15,12 +15,14 @@ for(f in flist) {
     dat[, sample_id := id.list[f]]
     dat[, sensor := sensor.list[f]]
     if(!("N.mu" %in% names(dat))) {
+        cat("\n")
         print(f)
         print("Did not converge")
         next
     }
     results.list[[f]] <- dat
 }
+close(pb)
 
 results <- rbindlist(results.list)
 results[, V1 := NULL]
