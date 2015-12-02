@@ -5,13 +5,17 @@ sensor.list <- gsub("([[:alnum:]]+(\\.[[:alpha:]]+)?)\\.[[:digit:]]", "\\1", id.
 names(id.list) <- flist
 names(sensor.list) <- flist
 results.list <- list()
+pb <- txtProgressBar(min=1,max=length(flist), style=3)
+i <- 0
 for(f in flist) {
-    print(f)
+    i <- i + 1
+    setTxtProgressBar(pb, i)
     ff <-file.path("run-scripts/results", f)
     dat <- fread(ff, header=TRUE)
     dat[, sample_id := id.list[f]]
     dat[, sensor := sensor.list[f]]
     if(!("N.mu" %in% names(dat))) {
+        print(f)
         print("Did not converge")
         next
     }
