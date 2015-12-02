@@ -27,15 +27,6 @@ load("data/simulation.results.RData")
 simulation.dat[, sensor := sensor.proper[sensor]]
 simulation.dat[, sensor := factor(sensor, levels=sensor.proper)]
 
-#' We found that the inversion of Carotenoids had a number of substantial 
-#' outliers that caused problems for the interpretation of this plot. To 
-#' alleviate this problem, we extracted the outliers and their x values into a 
-#' separate column to be displayed as annotated arrows pointing outside the 
-#' plot extent and recoded the original values as `NA`. We arbitrarily define 
-#' outliers as Car estimates that are more than double the true estimate.
-simulation.dat[Car.mu/Car > 2, 
-               c("Car.mu", "Car", "Car.out.x", "Car.out.y") := list(NA, NA, Car, Car.mu)]
-
 #' # Plot specifications
 #' The following lines provide graphical preferences for the plot. The `no.x` 
 #' theme is an additional set of parameters that removes x axis labels. The 
@@ -48,30 +39,38 @@ simulation.dat[Car.mu/Car > 2,
 #' created as a separate plot, and these plots are then stacked on top of each 
 #' other using the `grid.arrange` function.
 
-gen.theme <- theme_bw() + 
+
+sensor.error.plot <- function(gen.theme){
+    no.x <- theme(axis.title.x = element_blank())
+    gen.plot <- ggplot(simulation.dat) + 
+        facet_grid(.~sensor) + geom_point(size=2) +
+            geom_abline(linetype="dashed", color="red", size=1.5) +
+            gen.theme
+        N.plot <- gen.plot + aes(x=N, y=N.mu) + ylab("N") + no.x
+            #scale_x_continuous(breaks=c(1, 1.6, 2.2, 2.8, 3.4))
+        Cab.plot <- gen.plot + aes(x=Cab, y=Cab.mu) + ylab("Cab") + no.x
+        Car.plot <- gen.plot + aes(x=Car, y=Car.mu) + ylab("Car") + no.x
+        Cw.plot <- gen.plot + aes(x=Cw, y=Cw.mu) + ylab("Cw") + no.x +
+            scale_x_continuous(breaks=c(0, 150, 300, 450))
+        Cm.plot <- gen.plot + aes(x=Cm, y=Cm.mu) + ylab("Cm") + no.x +
+            scale_x_continuous(breaks=c(100, 200, 300))
+        grid.arrange(N.plot, Cab.plot, Car.plot, Cw.plot, Cm.plot, ncol=1)
+}
+theme.poster <- theme_bw() + 
     theme(axis.text = element_text(size=9),
           strip.text = element_text(size=11),
           axis.title.y = element_text(size=28),
           plot.margin = unit(c(0.2, 0.2, 0, 0), "lines"))
-no.x <- theme(axis.title.x = element_blank())
-gen.plot <- ggplot(simulation.dat) + 
-    facet_grid(.~sensor) + geom_point(size=2) +
-    geom_abline(linetype="dashed", color="red", size=1.5) +
-    gen.theme
-N.plot <- gen.plot + aes(x=N, y=N.mu) + ylab("N") + no.x +
-    scale_x_continuous(breaks=c(1, 1.6, 2.2, 2.8, 3.4))
-Cab.plot <- gen.plot + aes(x=Cab, y=Cab.mu) + ylab("Cab") + no.x
-y1 <- 21
-y2 <- 23
-Car.plot <- gen.plot + aes(x=Car, y=Car.mu) + ylab("Car") + no.x + ylim(0,y2) +
-    geom_segment(aes(x=Car.out.x, y=y1, xend=Car.out.x, yend=y2), size=0.6, color="purple",
-                 arrow=arrow(length=unit(0.06, "in"), type="closed"))
-Cw.plot <- gen.plot + aes(x=Cw, y=Cw.mu) + ylab("Cw") + no.x +
-    scale_x_continuous(breaks=c(0.01, 0.03, 0.05))
-Cm.plot <- gen.plot + aes(x=Cm, y=Cm.mu) + ylab("Cm") + no.x +
-    scale_x_continuous(breaks=c(0.005, 0.015, 0.025))
-png("manuscript/figures/sensor-bias.png", height=14, width=14, units="in", res=300, pointsize=25)
-grid.arrange(N.plot, Cab.plot, Car.plot, Cw.plot, Cm.plot, ncol=1)
+png("figures/sensor-bias.poster.png", height=14, width=14, units="in", res=300)
+sensor.error.plot(theme.poster)
+dev.off()
+theme.paper <- theme_bw() + 
+    theme(axis.text = element_text(size=6),
+          strip.text = element_text(size=6),
+          axis.title.y = element_text(size=14),
+          plot.margin = unit(c(0.2, 0.2, 0, 0), "lines"))
+png("figures/sensor-bias.paper.png", height=9, width=7.5, units="in", res=300)
+sensor.error.plot(theme.paper)
 dev.off()
 
 #' Here, we explore a few alternative ways of plotting the results of the 
@@ -84,7 +83,7 @@ dev.off()
 #' common plotting function that we then `mapply` over the list of parameters 
 #' and use `do.call` to arrange the resulting list of plots.
 
-gp2 <- ggplot(simulation.dat) + facet_grid(.~sensor) + geom_point(size=1) + gen.theme
+gp2 <- ggplot(simulation.dat) + facet_grid(.~sensor) + geom_point(size=1) + theme.paper
 plt.error <- function(param, string, parname){
     lab <- sprintf("pi(%s)", parname)
     plt <- gp2 + aes_string(x=param, y=sprintf(string, param)) + no.x +
@@ -92,7 +91,7 @@ plt.error <- function(param, string, parname){
     return(plt)
 }
 
-# Plot of relative error vs.
+# Plot of relative error vs. true parameter value
 #cv.str <- "%1$s.mu/%1$s - 1"
 #cv.list <- c(lapply(params.prospect5, plt.error, string=cv.str), ncol=1)
 #do.call(grid.arrange, cv.list)
@@ -100,7 +99,7 @@ plt.error <- function(param, string, parname){
 riqr.str <- "(%1$s.q975 - %1$s.q25)/%1$s.mu"
 riqr.list <- c(mapply(plt.error, params.prospect5, riqr.str, params.prospect5, SIMPLIFY=FALSE), 
                ncol=1)
-png("manuscript/figures/sensor-riqr.png", height=9, width=7, units="in", res=300)
+png("figures/sensor-riqr.paper.png", height=9, width=7.5, units="in", res=300)
 do.call(grid.arrange, riqr.list)
 dev.off()
 
