@@ -33,5 +33,5 @@ for(j in convert){
     set(simulation.dat, j=j, value=simulation.dat[[j]]*10000)
 }
 
-save(results, file="data/simulation.results.RData")
+save(simulation.dat, file="data/simulation.results.RData")
 
