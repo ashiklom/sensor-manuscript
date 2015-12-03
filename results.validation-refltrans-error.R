@@ -23,49 +23,22 @@ library(ggplot2)
 library(gridExtra)
 library(grid)
 
-#' The data for generating simulated spectra come from the `fft.f` object from 
-#' the `FFT.processed.RData` file (for details, see `fft.load.R` and 
-#' `fft.preprocess.R`). We then subset `fft.f` to only the full spectra, where 
-#' inversion parameter estimates are not `NA`, and only for tree species (i.e.  
-#' excluding shrubs and grasses).
+#' The data for generating simulated spectra come from the results of the FFT 
+#' inversion, which is located in the `all.results.RData`file. The accompanying 
+#' FFT data, including all reflectance and transmittance spectra, are in the 
+#' `fft.RData` file. Here we load all the data and then merge the FFT results 
+#' and metadata, removing non-tree PFTs (shrubs and grasses).
 
-load("data/FFT.processed.RData")
-fft.f <- fft.f[sensor=="identity"][!is.na(N.mu)][plant.type %in% c("hardwood", "conifer")]
-rm(fft.h, fft.c)
-
-#' We then load the observed transmittance data. These data are stored in a 
-#' private Dropbox and are available on request. To accelerate and facilitate 
-#' loading and pre-processing, we only load a subset of the columns, indicated 
-#' by `keep.cols`.
-
-keep.wl <- sprintf("Wave_%d", 400:2500)
-keep.other <- c("Spectra", "Species", "Sample_Name", "Sample_Year")
-keep.cols <- c(keep.wl, keep.other)
-dropbox.path <- "~/Dropbox"
-trans.path <- file.path(dropbox.path,
-                        "NASA_TE_PEcAn-RTM_Project",
-                        "Data", "Spectra",
-                        "NASA_FFT_Spectra",
-                        "NASA_FFT_IS_Tran_Spectra_v4.csv")
-trans <- fread(trans.path, header=TRUE, select=keep.cols)
+load("curated-leafspec/processed-spec-data/all.results.RData")
+load("curated-leafspec/processed-spec-data/fft.RData")
+setkey(fft.dat, sample_id)
+setkey(results, sample_id)
+fft.f <- results[fft.dat][plant_type %in% c("broadleaf", "conifer")]
 
 #' Because they are a physical impossibility and are indicative of measurement 
 #' error, we convert all negative transmittance values to `NA`.
 
-remove.negatives <- function(x){
-    if(is.numeric(x)) x[x < 0] <- NA
-    return(x)
-}
-trans <- trans[, lapply(.SD, remove.negatives)]
-
-#' We then load the reflectance data, stored in the same place.
-
-refl.path <- file.path(dropbox.path,
-                        "NASA_TE_PEcAn-RTM_Project",
-                        "Data", "Spectra",
-                        "NASA_FFT_Spectra",
-                        "NASA_FFT_LC_Refl_Spectra_v4.csv")
-refl <- fread(refl.path, header=TRUE, select=keep.cols)
+fft.transspec[fft.transspec < 0] <- NA
 
 #' # Calculating the error
 #' We define a function that takes data tables of parameter inversion estimates 
@@ -82,37 +55,28 @@ refl <- fread(refl.path, header=TRUE, select=keep.cols)
 #' this from the spectra (remaining columns).  Finally, we apply this function 
 #' to the matrix row-by-row, creating a matrix of error values.
 
-error.matrix <- function(dat.mod, dat.obs, refltrans=2){
-    setkey(dat.mod, Sample_Name, Sample_Year)
-    setkey(dat.obs, Sample_Name, Sample_Year)
-    rt.big <- dat.mod[dat.obs][!is.na(N.mu)]
-    parnames <- sprintf("%s.mu", params.prospect5)
-    rt.mat <- as.matrix(rt.big[,c(parnames, keep.wl), with=FALSE])
-    tdiff <- function(mrow){
-        pars <- mrow[1:5]
-        obs <- mrow[-5:0]
-        if(any(is.na(pars))) return(rep(NA,2101))
-        tmodel <- prospect(pars,5)[,refltrans]
-        tdiff <- tmodel - obs
-        return(tdiff)
-    }
-    error.mat <- apply(rt.mat, 1, tdiff)
-    return(error.mat)
-}
+parnames <- sprintf("%s.mu", params.prospect5)
+params.dat <- fft.f[, parnames, with=F]
+sim.dat <- t(apply(params.dat, 1, prospect, version=5))
+rownames(sim.dat) <- fft.f[,sample_id]
+sim.refl <- sim.dat[id.refl,1:2101]
+sim.trans <- sim.dat[id.trans,-2101:0]
 
-#' With the `error.matrix` function defined, we apply it to reflectance and 
-#' transmittance data. For each, we compute the error for all available data 
-#' and again for hardwood and conifer species separately, due to the large 
-#' systematic differences in both measurements and inversion parameter 
-#' estimates for both. Here and consequently, we use the `re` prefix to 
-#' indicate reflectance and `te` to indicate transmittance.
+id.refl <- intersect(rownames(fft.reflspec), rownames(sim.refl))
+id.trans <- intersect(rownames(fft.transspec), rownames(sim.trans))
 
-rem.all.raw <- error.matrix(fft.f, refl, 1)
-rem.h.raw <- error.matrix(fft.f[plant.type=="hardwood"], refl, 1)
-rem.c.raw <- error.matrix(fft.f[plant.type=="conifer"], refl, 1)
-tem.all.raw <- error.matrix(fft.f, trans, 2)
-tem.h.raw <- error.matrix(fft.f[plant.type=="hardwood"], trans, 2)
-tem.c.raw <- error.matrix(fft.f[plant.type=="conifer"], trans, 2)
+error.refl <- sim.refl - fft.reflspec[id.refl,-50:0]
+error.trans <- sim.trans - fft.transspec[id.trans,-50:0]
+
+id.refl.bl <- intersect(fft.f[plant_type == "broadleaf", sample_id], rownames(error.refl))
+id.trans.bl <- intersect(fft.f[plant_type == "broadleaf", sample_id], rownames(error.trans))
+id.refl.con <- intersect(fft.f[plant_type == "conifer", sample_id], rownames(error.refl))
+id.trans.con <- intersect(fft.f[plant_type == "conifer", sample_id], rownames(error.trans))
+
+error.refl.bl <- error.refl[id.refl.bl,]
+error.trans.bl <- error.trans[id.trans.bl,]
+error.refl.con <- error.refl[id.refl.con,]
+error.trans.con <- error.trans[id.trans.con,]
 
 #' When validating the inversion results of the FFT database, it is important 
 #' to distinguish between errors inherent to PROSPECT (which this paper does 
@@ -161,7 +125,6 @@ tem.c.raw <- error.matrix(fft.f[plant.type=="conifer"], trans, 2)
 #' measurement type (Reflectance or Transmittance), respectively. 
 
 error.data <- function(err.mat, pft, measure){
-    err.mat <- t(err.mat)
     err.means <- colMeans(err.mat, na.rm=TRUE)
     err.q <- apply(err.mat, 2, quantile, c(0.025,0.10,0.90,0.975), na.rm=TRUE)
     err.dat <- data.table(wavelength = 400:2500, means=err.means,
@@ -180,8 +143,8 @@ error.data <- function(err.mat, pft, measure){
 #' `rbindlist` function to combine the list into a single `data.table`, which 
 #' will be used to generate the plot.
 
-em.list <- list(rem.all.raw, rem.h.raw, rem.c.raw,
-                tem.all.raw, tem.h.raw, tem.c.raw)
+em.list <- list(error.refl, error.refl.bl, error.refl.con,
+                error.trans, error.trans.bl, error.trans.bl)
 pft.names <- c("All", "Broadleaf", "Conifer")
 pft.list <- rep(pft.names, 2)
 measure.list <- rep(c("Reflectance", "Transmittance"), each=3)
@@ -211,7 +174,7 @@ error.plot <- function(err.dat, facet.string){
         ylab("Error (model - observed)") +
         facet_grid(facet.string, scales="free_y") +
         theme_bw() +
-        theme(text = element_text(size=25),
+        theme(text = element_text(size=12),
               axis.title = element_text(size=rel(1)),
             axis.text = element_text(size=rel(0.7)))
     return(err.spec)
@@ -219,7 +182,7 @@ error.plot <- function(err.dat, facet.string){
 #' Below, we apply our plot function to the data table we generated previously 
 #' and save the resulting plot to a PDF.
 dat.plot <- error.plot(dat.all, "measure~pft")
-png("manuscript/figures/refltrans-validation.png", width=14, height=14, units="in", res=300, pointsize=25)
+png("figures/refltrans-validation.png", width=14, height=14, units="in", res=300, pointsize=25)
 plot(dat.plot)
 dev.off()
 
