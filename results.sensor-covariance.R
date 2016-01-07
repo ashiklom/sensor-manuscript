@@ -29,7 +29,8 @@ library(MASS)
 #' sensors--defined by `sensor.sub`--with the correct ID) must be in the 
 #' directory set by `path`.
 
-datnum <- 77
+datnum <- 5
+system(paste0("./getsims.sh ", datnum))
 sensor.sub <- c("identity", "aviris.ng", "landsat8", "modis")
 path <- "some-simulations"
 
@@ -42,16 +43,17 @@ path <- "some-simulations"
 
 datlist <- list()
 for(s in sensor.sub){
+# Load samples
     f.name <- sprintf("%s.%d.RData", s, datnum)
-    f.list <- load.from.name(f.name, path)
-    sensor <- as.integer(factor(s, levels=sensor.sub))
-    sensor.factor <- factor(sensor, levels=sensor.sub)
-    samples.full <- f.list$samples
-    samples.sub <- burnin.thin(samples.full)
-    samples.pairs <- samples.sub[,1:5]
-    samples <- cbind(samples.pairs, sensor)
-    colnames(samples) <- c(params.prospect5, "sensor")
-    datlist[[s]] <- samples
+    load(file.path(path, f.name))
+    sensor.factor <- factor(s, levels=sensor.sub)
+    sensor <- as.integer(sensor.factor)
+    samples.sub <- window(samples, start=80000, thin=20)
+    samples.stack <- do.call(rbind, samples.sub)
+    samples.pairs <- samples.stack[,1:5]
+    samples.use <- cbind(samples.pairs, sensor)
+    colnames(samples.use) <- c(params.prospect5, "sensor")
+    datlist[[s]] <- samples.use
 }
 
 #' This matrix list is then converted into a single large matrix 
@@ -62,7 +64,10 @@ samples.all <- do.call(rbind, datlist)
 #' For validation, we also extract the true parameter values from the last 
 #' loaded object (which one we do doesn't actually matter because these values 
 #' are the same within an ID value). 
-true.param <- unlist(f.list[params.prospect5])
+f.name <- sprintf("%s.%d.csv", s, datnum)
+truedat <- fread(file.path(path, f.name))
+true.param <- truedat[, c(N, Cab, Car, Cw, Cm)]
+names(true.param) <- params.prospect5
 
 #' # Generating the plots
 #' For convenience, we define the colors for the plots here and reference this 
@@ -157,8 +162,8 @@ plt.list <- list("N", c(2, 1, 1), c(3, 1, 1), c(4, 1, 1), c(5, 1, 1),
                  c(1, 4, 2), c(2, 4, 2), c(3, 4, 2), "Cw", c(5, 4, 1),
                  c(1, 5, 2), c(2, 5, 2), c(3, 5, 2), c(4, 5, 2), "Cm")
 
-png(file="manuscript/drive-folder/pairs-4.png", width=14, height=10, units="in", res=300, pointsize=25)
-par(mfrow=c(5,5), mai=c(0.1, 0.2, 0.1, 0.2), oma=c(2,2,2,2), cex.axis=0.8)
+png(file="figures/pairs-4.png", width=7, height=5, units="in", res=300)
+par(mfrow=c(5,5), mar=c(0.3, 0.3, 0.3, 0.3), oma=c(2,2,2,2), cex.axis=0.8)
 for(p in plt.list){
     if(is.character(p)){
 # Diagonal -- write parameter

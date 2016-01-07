@@ -60,14 +60,23 @@ sensor.table[, sensor := sensor.proper[sensor]]
 print(sensor.table, digits=3)
 
 #' We now plot the statistics. 
-cols <- c("darkred", "red", "orange", "yellow", "green", 
-          "darkgreen", "blue", "darkblue", "turquoise", 
-          "darkviolet", "grey")
+cols <- c("purple",    # ASD
+          "mediumorchid3",        # AVIRIS NG
+          "mediumorchid1",     # AVIRIS Classic
+          "orchid1",     # Hyperion
+          "palevioletred1",      # Chris Proba
+          "olivedrab4",  # Landsat 5
+          "olivedrab3",       # Landsat 7
+          "olivedrab2",   # Landsat 8
+          "turquoise4",  # MODIS
+          "turquoise2", # VIIRS
+          "tomato4")       # AVHRR
 names(cols) <- sensor.proper
 
-pdf("figures/uncertainty.pdf")
-gp <- par(mfrow=c(2,3), mar=c(2,0,2,0), oma=c(3,4.5,2,2), 
-          cex=1, cex.axis=0.8)
+path <- file.path(".")
+png(file.path(path, "figures/uncertainty.png"), width=13.4, height=8.4, units="in", res=300)
+gp <- par(mfrow=c(2,3), mar=c(0.5,0,0.8,0), oma=c(1,4.5,0.1,2), 
+          cex=1.7, cex.axis=0.8)
 y1 <- c(0,120)
 y2 <- c(0,250)
 with(sensor.table, {
@@ -82,19 +91,22 @@ with(sensor.table, {
          barplot(Cm.pi, col=cols, main="Cm", ylim=y2, yaxt='n')
          abline(h=100, lty=2)
          })
-mtext("Mean relative uncertainty (%)", 2, outer=TRUE, line=3)
+mtext("Mean relative uncertainty (%)", 2, outer=TRUE, line=3, cex=1.5)
 par(gp)
-leg <- par(usr=c(0,1,0,1), xpd=NA, cex=1)
+leg <- par(usr=c(0,1,0,1), xpd=NA, cex=1.5)
 legend(x=0.7, y=0.46, legend=sensor.proper, fill=cols)#, lty=1, lwd=4)
+text(x=-0.035, y=1.08, "(a)", cex=1.5)
 dev.off()
 
-
-pdf("figures/relbias.pdf")
-gp <- par(mfrow=c(2,3), mar=c(1,0,2,0), oma=c(3,4.5,0,1), 
-          cex=1, cex.axis=0.8)
+png(file.path(path, "figures/relbias.png"), width=13.4, height=8.4, units="in", res=300)
+gp <- par(mfrow=c(2,3), mar=c(0.5, 0, 1.2, 0), oma=c(0,4.5,0,1), 
+          cex=1.7, cex.axis=0.8)
 y1 <- c(-2,2)
 y2 <- c(-40, 0)
 y3 <- c(0, 10)
+cextxt <- 0.8
+lwd <- 2.5
+len <- 0.08
 with(sensor.table, {
          barplot(N.alpha, col=cols, main="N", ylim=y1)
          abline(h=100, lty=2)
@@ -102,14 +114,14 @@ with(sensor.table, {
          Cab.alpha[11] <- -1.5
          barplot(Cab.alpha, col=cols, main="Cab", ylim=y1, yaxt='n')
          abline(h=100, lty=2)
-         text(x=12.7, y=-2, labels=sprintf("%.1f", Cab.avhrr), cex=0.6, xpd=NA)
-         arrows(x0=12.7, y0=-1.54, y1=-1.86, col="grey", lwd=2, length=0.05)
+         text(x=12.7, y=-2, labels=sprintf("%.1f", Cab.avhrr), cex=cextxt, xpd=NA)
+         arrows(x0=12.7, y0=-1.54, y1=-1.86, col="tomato4", lwd=lwd, length=len)
          Cw.avhrr <- Cw.alpha[11]
          Cw.alpha[11] <- -1.5
          barplot(Cw.alpha, col=cols, main="Cw", ylim=y1, yaxt='n')
          abline(h=100, lty=2)
-         text(x=12.7, y=-2, labels=sprintf("%.1f", Cw.avhrr), cex=0.6, xpd=NA)
-         arrows(x0=12.7, y0=-1.54, y1=-1.86, col="grey", lwd=2, length=0.05)
+         text(x=12.7, y=-2, labels=sprintf("%.1f", Cw.avhrr), cex=cextxt, xpd=NA)
+         arrows(x0=12.7, y0=-1.54, y1=-1.86, col="tomato4", lwd=lwd, length=len)
          barplot(Car.alpha, col=cols, main="Car", ylim=y2)
          abline(h=100, lty=2)
          plot.new()
@@ -118,12 +130,14 @@ with(sensor.table, {
          Cm.alpha.big <- Cm.alpha[Cm.alpha > 10]
          big <- sensor.proper[Cm.alpha > 10]
          barplot(Cm.alpha.trim, col=cols, main="Cm", ylim=y3)
-         text(x=c(5.5,12.7), y=9.8, labels=sprintf("%.1f", Cm.alpha.big), cex=0.6)
-         arrows(x0=c(5.5,12.7), y0=8.6, y1=9.5, col=cols[big], lwd=2,
-                length=0.05)
+         text(x=c(5.5,12.7), y=9.8, labels=sprintf("%.1f", Cm.alpha.big), cex=cextxt, xpd=NA)
+         arrows(x0=c(5.5,12.7), y0=8.6, y1=9.5, col=cols[big], lwd=lwd, length=len)
          abline(h=100, lty=2)
          })
-mtext("Mean relative bias (%)", 2, outer=TRUE, line=3)
+mtext("Mean relative bias (%)", 2, outer=TRUE, line=3, cex=1.5)
+par(gp)
+lab <- par(usr=c(0,1,0,1), xpd=NA, cex=1.5)
+text(x=-0.035, y=1.08, "(b)", cex=1.5)
 dev.off()
 #par(gp)
 #leg <- par(usr=c(0,1,0,1), xpd=NA, cex=0.6)
